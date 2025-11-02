@@ -1,0 +1,103 @@
+Synopsis
+--------
+This toolbox was written to standardize MATLAB data storage and analysis for the COCOHA project.
+The data structure is based loosely on FieldTrip's, but allows for the storage of multiple data
+sources (e.g. audio/EEG) and provides flexibility in defining dimensions (e.g. channel, time, 
+frequency, rate, scale, etc). Moreover, function calls that modify the contents of the data 
+structure will append their user-defined parameters to the data.cfg cell array. This allows for
+traceability of results.
+
+The functions in the toolbox allow for external functions to operate on the data structure in a 
+robust and standardized way.
+
+The MATLAB components are designed for offline prototyping of decoding strategies. On the other
+hand, realtime processing is primarily implemented with OpenViBE Python scripts. OpenViBE is used as
+it provides drift correction, and its support for object-oriented programming allows better
+modularity.
+
+
+Installation
+------------
+Add main directory to the MATLAB path and run co_defaults on the MATLAB command line.
+
+
+MATLAB Data Structure Specifications
+------------------------------------
+Data stored in the data structure (e.g. audio/EEG in the example below) can take on any user-
+defined field name in the form of data.FIELD, where FIELD is the field name of the data source 
+(i.e. wav or eeg). FIELD must not share the same name as any dimension label. Trials are stored as 
+cells in the form of .FIELD{TRIAL}. In the example, the EEG data has two trials. The length of 
+each trial does not need to be the same under this schema. Sample rates for each data type are 
+stored under .fsample.FIELD.
+
+Dimension information is stored in the .dim field. The dimension types (e.g. time, chan) are 
+stored in the .dim.FIELD. The specification of their axis values is optional. They can be specified 
+under .dim.DIM.FIELD{TRIAL}, where DIM is the name of the dimension (i.e. freq). The axis values 
+should be stored as either a cell array of strings or numbers (and not a cell with a numeric array).
+The 'time' dimension has a special significance as many signal processing functions operate on this
+dimension. Additionally, any operations on this dimension will affect the .fsample and .event
+fields.
+
+Event/trigger/stimulation values for each data field are stored in the .event.FIELD structure array.
+.event.FIELD(TRIAL).sample is an array indexes of samples at which each event occured.
+.event.FIELD(TRIAL).value is a cell array containing a corresponding value for each event sample.
+The values can either be a string or numeric, and are meant to assist the user in sorting different
+types of events.
+
+data
+    .wav{1}         = 44100 x 2 matrix
+    .eeg{1}         = 1000 x 128 matrix
+        {2}         = 1000 x 128 matrix
+    .dim
+        .wav        = 'time_chan'
+        .eeg        = 'time_chan_freq'
+        .chan
+            .wav{1}   = {'1', '2'}
+            .eeg{1}   = {'A1', 'A2', 'CZ'}
+                {2}   = {'A1', 'A2', 'CZ'}
+        .freq
+            .eeg{1} = {4, 8, 16 ...}
+                {2} = {4, 8, 16 ...}
+    .fsample
+        .wav        = 44100
+        .eeg        = 1000
+    .event
+        .eeg(1)
+            .sample
+            .value
+            (2)
+            .sample
+            .value
+
+
+Function Specifications
+-----------------------
+Functions belonging to the toolbox generally are prefixed with 'co_', except for private or 
+external functions. Similar to FieldTrip, all functions take a cfg structure as their first 
+argument. The cfg structure contains parameters passed to the function. The data source (e.g. eeg 
+or wav) being operated on is specified by cfg.FIELD.param. Functions that alter the data will 
+append the cfg structure to the cfg cell array in the data, along with the name of the function and 
+the date of execution in the cfg.fcn and cfg.date fields.
+
+
+Required/Supported MATLAB Toolboxes
+-----------------------------------
+Signal Processing Toolbox
+Stat. & Mach. Learn. Toolbox- supported for classification.
+Parallel Computing Toolbox  - supported for faster inverse computations on GPU.
+Neural Network Toolbox      - supported for neural network classifier functionality.
+FieldTrip Toolbox           - supported for M/EEG file import and channel topography plotting.
+                              Available at: http://www.fieldtriptoolbox.org/
+DeeBNet Toolbox             - supported for restricted Boltzmann machine neural network
+                              pre-training. Not included in public COCOHA toolbox release.
+                              Available at: http://ceit.aut.ac.ir/~keyvanrad/DeeBNet%20Toolbox.html
+inexact_alm_rpca            - supported for robust PCA denoising. Not included in public COCOHA
+                              toolbox release. Available at:
+                              http://perception.csl.illinois.edu/matrix-rank/sample_code.html
+
+
+Supported Python Modules
+------------------------
+scikit-learn                - supported for classification.
+keras (1.x)                 - supported for neural network classifier functionality. (TODO: Update 
+                              to 2.X compatibility)
