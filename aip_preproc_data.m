@@ -21,8 +21,23 @@ for ss = 1:18
     load("output/data.mat")
 
     %% Figure related initializations
+    % Window size
+    windowSize = 10000; % number of points to show at once
+    N = length(data.eeg{1}(:, 1));
+    maxIndex = N - windowSize;
     
-    customPlot(data.eeg{1}(:, 1), 'Raw Data');
+    % Initial start index
+    startIdx = 1;
+    
+    % Create figure
+    fig = figure('Name','Sliding Window Plot');
+    
+    % customPlot(data.eeg{1}(:, 1), 'Raw Data');
+
+    h1 = subplot(4,1,1);
+    raw_data = data.eeg{1}(:, 1);
+    p1 = plot(raw_data);
+    title('Raw Data');
 
     data.cfg = [];
     
@@ -31,13 +46,17 @@ for ss = 1:18
     cfg.eeg.smooth = data.fsample.eeg/50;
     data = co_preprocessing(cfg,data);
     
-    customPlot(data.eeg{1}(:, 1), '50Hz Noise eleminated Data');
+    % customPlot(data.eeg{1}(:, 1), '50Hz Noise eleminated Data');
+    h2 = subplot(4,1,2);
+    data50HzNoiseRemoved = data.eeg{1}(:, 1);
+    p2 = plot(data50HzNoiseRemoved);
+    title('50Hz Noise eleminated Data');
 
     %% Downsample
     % cfg = [];
     % cfg.eeg.newfs = 64;
     % data = co_resampledata(cfg,data);
-    % 
+
     % customPlot(data.eeg{1}(1000:50000, 1), 'Downsampled Data');
 
 
@@ -51,7 +70,13 @@ for ss = 1:18
     cfg.eeg.hpfreq = 0.1;
     data = co_preprocessing(cfg,data);
 
-    customPlot(data.eeg{1}(:, 1), 'Initial Filtered Data');
+    % customPlot(data.eeg{1}(:, 1), 'Initial Filtered Data');
+
+    h3 = subplot(4,1,3);
+    filtereData = data.eeg{1}(:, 1);
+    p3 = plot(filtereData);
+    title('Initial Filtered Data');
+
 
     %% Remove original EOG and unused channels from data and average reference
     cfg = [];
@@ -66,8 +91,20 @@ for ss = 1:18
     cfg.eeg.refchannel = 'all';
     data = co_preprocessing(cfg,data);
     
-    customPlot(data.eeg{1}(:, 1), 'Average referenced Data');
+    % customPlot(data.eeg{1}(:, 1), 'Average referenced Data');
+    h4 = subplot(4,1,4);
+    averagedData = data.eeg{1}(:, 1);
+    p4 = plot(averagedData);
+    title('Average referenced Data');
+
+    slider = uicontrol('Style', 'slider',...
+    'Min',1,'Max',maxIndex,'Value',startIdx, ...
+    'Units','normalized','Position',[0.25 0.01 0.5 0.03]);
+
+    % Slider callback function
+    slider.Callback = @(src,event) updatePlots(round(src.Value), windowSize, raw_data, data50HzNoiseRemoved, filtereData, averagedData, p1, p2, p3, p4);
     a = 3;
+    break
 end
 
 function customPlot(dataSnippet, text)
@@ -77,4 +114,24 @@ function customPlot(dataSnippet, text)
     title(text);
 end
 
+% Function to update plots
+function updatePlots(startIdx, windowSize, raw_data, data50HzNoiseRemoved, filtereData, averagedData, p1, p2, p3, p4)
+    idx = startIdx:(startIdx+windowSize-1);
+    p1.YData = raw_data(idx);
+    p1.XData = idx;
+    xlim(p1.Parent, [startIdx, startIdx+windowSize-1]);
 
+    p2.YData = data50HzNoiseRemoved(idx);
+    p2.XData = idx;
+    xlim(p2.Parent, [startIdx, startIdx+windowSize-1]);
+
+    p3.YData = filtereData(idx);
+    p3.XData = idx;
+    xlim(p3.Parent, [startIdx, startIdx+windowSize-1]);
+
+    p4.YData = averagedData(idx);
+    p4.XData = idx;
+    xlim(p4.Parent, [startIdx, startIdx+windowSize-1]);
+
+    drawnow;
+end
