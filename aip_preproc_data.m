@@ -34,7 +34,7 @@ for ss = 1:18
     
     % customPlot(data.eeg{1}(:, 1), 'Raw Data');
 
-    h1 = subplot(4,1,1);
+    h1 = subplot(5,1,1);
     raw_data = data.eeg{1}(:, 1);
     p1 = plot(raw_data);
     title('Raw Data');
@@ -47,7 +47,7 @@ for ss = 1:18
     data = co_preprocessing(cfg,data);
     
     % customPlot(data.eeg{1}(:, 1), '50Hz Noise eleminated Data');
-    h2 = subplot(4,1,2);
+    h2 = subplot(5,1,2);
     data50HzNoiseRemoved = data.eeg{1}(:, 1);
     p2 = plot(data50HzNoiseRemoved);
     title('50Hz Noise eleminated Data');
@@ -72,7 +72,7 @@ for ss = 1:18
 
     % customPlot(data.eeg{1}(:, 1), 'Initial Filtered Data');
 
-    h3 = subplot(4,1,3);
+    h3 = subplot(5,1,3);
     filtereData = data.eeg{1}(:, 1);
     p3 = plot(filtereData);
     title('Initial Filtered Data');
@@ -92,30 +92,43 @@ for ss = 1:18
     data = co_preprocessing(cfg,data);
     
     % customPlot(data.eeg{1}(:, 1), 'Average referenced Data');
-    h4 = subplot(4,1,4);
+    h4 = subplot(5,1,4);
     averagedData = data.eeg{1}(:, 1);
+    mean(averagedData)
     p4 = plot(averagedData);
     title('Average referenced Data');
+
+    %% Threshold-based artifact removal
+    h5 = subplot(5,1,5);
+    cleanData = removeArtifactsThreshold(data.eeg{1}(:, 1), 70);
+    p5 = plot(cleanData);
+    title('Threshold-based artifact removal');
+
+
+
+    %% Slider configurations
 
     slider = uicontrol('Style', 'slider',...
     'Min',1,'Max',maxIndex,'Value',startIdx, ...
     'Units','normalized','Position',[0.25 0.01 0.5 0.03]);
-
+    linkaxes([h1, h2, h3, h4, h5], 'x'); 
     % Slider callback function
-    slider.Callback = @(src,event) updatePlots(round(src.Value), windowSize, raw_data, data50HzNoiseRemoved, filtereData, averagedData, p1, p2, p3, p4);
+    slider.Callback = @(src,event) updatePlots(round(src.Value), windowSize, ...
+                    raw_data, data50HzNoiseRemoved, filtereData, averagedData, cleanData, ...
+                    p1, p2, p3, p4, p5);
     a = 3;
     break
 end
 
 function customPlot(dataSnippet, text)
-    subplot(4,1,1);
+    subplot(5,1,1);
     figure;
     plot(dataSnippet);
     title(text);
 end
 
 % Function to update plots
-function updatePlots(startIdx, windowSize, raw_data, data50HzNoiseRemoved, filtereData, averagedData, p1, p2, p3, p4)
+function updatePlots(startIdx, windowSize, raw_data, data50HzNoiseRemoved, filtereData, averagedData, cleanData, p1, p2, p3, p4, p5)
     idx = startIdx:(startIdx+windowSize-1);
     p1.YData = raw_data(idx);
     p1.XData = idx;
@@ -133,5 +146,18 @@ function updatePlots(startIdx, windowSize, raw_data, data50HzNoiseRemoved, filte
     p4.XData = idx;
     xlim(p4.Parent, [startIdx, startIdx+windowSize-1]);
 
+    p5.YData = cleanData(idx);
+    p5.XData = idx;
+    xlim(p5.Parent, [startIdx, startIdx+windowSize-1]);
+
     drawnow;
+end
+
+function [EEG_clean] = removeArtifactsThreshold(EEG, threshold)
+    % Find samples exceeding threshold in any channel
+    artifact_idx = abs(EEG) > threshold;
+    
+    % Remove artifact-contaminated samples
+    EEG(artifact_idx, :) = NaN; % simple zeroing
+    EEG_clean = fillmissing(EEG, 'linear');
 end
