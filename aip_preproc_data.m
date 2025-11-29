@@ -97,10 +97,10 @@ for ss = 1:18
     mean(averagedData)
     p4 = plot(averagedData);
     title('Average referenced Data');
-
+     
     %% Threshold-based artifact removal
     h5 = subplot(5,1,5);
-    cleanData = removeArtifactsThreshold(data.eeg{1}(:, 1), 70);
+    cleanData = removeArtifactsThreshold(data.eeg{1}(:, 1), 40, 200);
     p5 = plot(cleanData);
     title('Threshold-based artifact removal');
 
@@ -153,11 +153,20 @@ function updatePlots(startIdx, windowSize, raw_data, data50HzNoiseRemoved, filte
     drawnow;
 end
 
-function [EEG_clean] = removeArtifactsThreshold(EEG, threshold)
+function [cleanEEG] = removeArtifactsThreshold(eegData, threshold, windowSize)
+
+    nSamples = length(eegData);
+    for startIdx = 1:windowSize:nSamples
+        endIdx = min(startIdx + windowSize - 1, nSamples);
+        window = eegData(startIdx:endIdx);
+        % Check if any value exceeds threshold
+        if any(abs(window) > threshold)
+            artifact_idx = window > threshold;
+            window(artifact_idx) = NaN;
+            % Truncate the artifact (here set to NaN)
+            eegData(startIdx:endIdx) = window;
+        end
+    end
     % Find samples exceeding threshold in any channel
-    artifact_idx = abs(EEG) > threshold;
-    
-    % Remove artifact-contaminated samples
-    EEG(artifact_idx, :) = NaN; % simple zeroing
-    EEG_clean = fillmissing(EEG, 'linear');
+    cleanEEG = fillmissing(eegData, 'linear');
 end
