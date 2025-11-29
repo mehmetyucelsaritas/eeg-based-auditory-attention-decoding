@@ -4,6 +4,7 @@
 EEGBASEPATH = './eeg';           % Find EEG files here
 WAVBASEPATH = './audio';         % Find AUDIO wav files here 
 MATBASEPATH = '.';               % Save preprocessed data files here
+addpath(genpath("cocoha-matlab-toolbox-release_0.5.0/"))
 
 for ss = 1:18
     clear data data_noise
@@ -12,8 +13,6 @@ for ss = 1:18
     % Load data
     load(fullfile(EEGBASEPATH,['S' num2str(ss) '.mat']))
     
-    customPlot(data.eeg{1}(1000:50000, 2), 'Raw Data');
-
     %% Assign L/R events
     events_of_interest = expinfo.attend_mf; % Did the subject listen to the male or female speaker?   
     
@@ -26,16 +25,11 @@ for ss = 1:18
     cfg = [];
     cfg.eeg.smooth = data.fsample.eeg/50;
     data = co_preprocessing(cfg,data);
-    
-    customPlot(data.eeg{1}(1000:50000, 2), '50Hz Noise eleminated Data');
 
     %% Downsample
-    % cfg = [];
-    % cfg.eeg.newfs = 64;
-    % data = co_resampledata(cfg,data);
-    % 
-    % customPlot(data.eeg{1}(1:1000, 2), 'Downsampled Data');
-
+    cfg = [];
+    cfg.eeg.newfs = 64;
+    data = co_resampledata(cfg,data);
 
     %% Initial filtering
     cfg = [];
@@ -46,8 +40,6 @@ for ss = 1:18
     cfg.eeg.hpfiltdir = 'onepass';
     cfg.eeg.hpfreq = 0.1;
     data = co_preprocessing(cfg,data);
-
-    customPlot(data.eeg{1}(1000:50000, 2), 'Initial Filtered Data');
 
     %% Create EOG bipolar channels
     cfg = [];
@@ -78,7 +70,7 @@ for ss = 1:18
     cfg = [];
     cfg.eeg.eog.channels = {'EXG3','EXG4'};
     data = co_denoise(cfg,data);
-    customPlot(data.eeg{1}(1000:50000, 2), 'Denoised Data');
+
     %% Remove EOG channels
     cfg = [];
     cfg.eeg.dim = 'chan';
@@ -88,10 +80,9 @@ for ss = 1:18
     %% Average reference
     cfg = [];
     cfg.eeg.reref = 'yes';
-    cfg.eeg.refchannael = 'all';
+    cfg.eeg.refchannel = 'all';
     data = co_preprocessing(cfg,data);
-    
-    customPlot(data.eeg{1}(1000:50000, 2), 'Average referenced Data');
+
     %% Select events corresponding to attended talker
     cfg = [];
     cfg.eeg.event = {1,2};
@@ -189,10 +180,4 @@ for ss = 1:18
     fprintf('Saving data\n')
     save(fullfile(MATBASEPATH,['S' num2str(ss) '_data_preproc.mat']),'data');
     save(fullfile(MATBASEPATH,['S' num2str(ss) '_noise_preproc.mat']),'data_noise');
-end
-
-function customPlot(dataSnippet, text)
-    figure;
-    plot(dataSnippet);
-    title(text);
 end
