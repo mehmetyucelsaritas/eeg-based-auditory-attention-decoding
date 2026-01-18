@@ -2,7 +2,12 @@
 % the COCOHA Matlab Toolbox v0.5.0, found here: http://doi.org/10.5281/zenodo.1198430
 % EEGLAB Toolbox v2025.1.0, found here: https://eeglab.org/
 
-% Load data from DTU dataset, most of the parts cropped for the fast processes
+% Load data from original DTU dataset .mat file
+% load(fullfile(EEGBASEPATH,['S' num2str(ss) '.mat']))
+% data.eeg{1} = data.eeg{1}(1:500000, :);
+% save("output/data.mat", "data", "expinfo");
+
+% Load data from cropped DTU dataset for the fast data processes
 load("output/data.mat"); % data.mat = ./eeg/S1/data.eeg{1}(1:500000, :);
 data.cfg = [];
 analysisComponent = false; % true: to analysis components, false: use ICA weights
@@ -34,20 +39,20 @@ averagedData = data.eeg{1}(:, 1);
 % cleanData = removeArtifactsThreshold(data.eeg{1}(:, 1), 40, 200);
 
 %% Ica base artifact removal
+EEG = convertToEEGLAB(data, 100000);
 if analysisComponent
-    EEG = convertToEEGLAB(data, 100000);
-    EEG = pop_runica(EEG, 'icatype', 'runica', 'extended', 1);
-    EEG = pop_chanedit(EEG, 'lookup', 'standard-10-5-cap385.elp');
-    pop_topoplot(EEG, 0, 1:EEG.nbchan, 'ICA Component Scalp Maps', 0, 'electrodes', 'on');
+    EEG_ICA = pop_runica(EEG, 'icatype', 'runica', 'extended', 1);
+    EEG_ICA = pop_chanedit(EEG_ICA, 'lookup', 'standard-10-5-cap385.elp');
+    pop_topoplot(EEG_ICA, 0, 1:EEG_ICA.nbchan, 'ICA Component Scalp Maps', 0, 'electrodes', 'on');
 else
     load('output/ICAweights.mat', 'EEG');
-    EEG = pop_subcomp(EEG, [1 4 5 8 17 34 35 36 45 46 52 57], 0); 
+    EEG_ICA = pop_subcomp(EEG, [1 4 5 8 17 34 35 36 45 46 52 57], 0); 
 end
 
 %% Asr based artifact removal
 calibDataSize = EEG.srate*2;
 calibChanSize = EEG.nbchan;
-calibrationData = EEG.data(1:calibChanSize, 1:calibDataSize);
+calibrationData = EEG_ICA.data(1:calibChanSize, 1:calibDataSize);
 samplingRate = EEG.srate;
 
 % Compute ASR calibration state
@@ -66,7 +71,7 @@ titles = {'Raw Data', '50Hz Noise eliminated Data',...
     'ICA-cleaned Data', 'Asr-based artifact removal'};
 
 dataList = {raw_data, data50HzNoiseRemoved, filteredData, ...
-    averagedData, EEG.data(1,:)', EEG_ASR(1, :)};
+    averagedData, EEG_ICA.data(1,:)', EEG_ASR(1, :)};
 
 for i = 1:length(dataList)
     [h{i}, p{i}] = createSubplotWithPlot(i, 6, dataList{i}, titles{i});
