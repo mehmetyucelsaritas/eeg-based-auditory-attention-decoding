@@ -1,4 +1,3 @@
-%% ICA Related Functions
 function [cleanEEG] = removeArtifactsThreshold(eegData, threshold, windowSize)
 
     nSamples = length(eegData);
