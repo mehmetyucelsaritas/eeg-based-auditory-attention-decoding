@@ -5,6 +5,8 @@
 % Load data from saved one channel instance data for fast processes
 load("output/data.mat");
 data.cfg = [];
+analysisComponent = false; % true: to analysis components, false: use ICA weights
+manualCalibration = true; % true: manual, false: ICA ouput
 
 %% Figure related initializations
 [fig, startIdx, maxIndex, windowSize] = initSlidingWindowFigure(data.eeg{1});
@@ -32,12 +34,15 @@ averagedData = data.eeg{1}(:, 1);
 % cleanData = removeArtifactsThreshold(data.eeg{1}(:, 1), 40, 200);
 
 %% Ica base artifact removal
-% EEG = convertToEEGLAB(data, 100000);
-% EEG = pop_runica(EEG, 'icatype', 'runica', 'extended', 1);
-% EEG = pop_chanedit(EEG, 'lookup', 'standard-10-5-cap385.elp');
-% pop_topoplot(EEG, 0, 1:EEG.nbchan, 'ICA Component Scalp Maps', 0, 'electrodes', 'on');
-load('output/ICAweights.mat', 'EEG');
-EEG = pop_subcomp(EEG, [1 4 5 8 17 34 35 36 45 46 52 57], 0); 
+if analysisComponent
+    EEG = convertToEEGLAB(data, 100000);
+    EEG = pop_runica(EEG, 'icatype', 'runica', 'extended', 1);
+    EEG = pop_chanedit(EEG, 'lookup', 'standard-10-5-cap385.elp');
+    pop_topoplot(EEG, 0, 1:EEG.nbchan, 'ICA Component Scalp Maps', 0, 'electrodes', 'on');
+else
+    load('output/ICAweights.mat', 'EEG');
+    EEG = pop_subcomp(EEG, [1 4 5 8 17 34 35 36 45 46 52 57], 0); 
+end
 
 %% Asr based artifact removal
 calibDataSize = EEG.srate*2;
@@ -47,7 +52,12 @@ samplingRate = EEG.srate;
 
 % Compute ASR calibration state
 cutoff_scalar = 20;
-asr_state = asr_calibrate(calibrationData, samplingRate, cutoff_scalar);
+if manualCalibration
+    load('output/calibrationDataManual.mat', 'calibrationDataManual');
+    asr_state = asr_calibrate(calibrationDataManual, samplingRate, cutoff_scalar); %calibration based on manually extracted output
+else
+    asr_state = asr_calibrate(calibrationData, samplingRate, cutoff_scalar); %calibration based on ICA output 
+end 
 EEG_ASR = asr_process(EEG.data(1:calibChanSize, :), samplingRate, asr_state);
 
 %% Initialize h:subplot axis handle and p:plot handle.
