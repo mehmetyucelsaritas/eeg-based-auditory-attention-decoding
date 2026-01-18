@@ -2,8 +2,8 @@
 % the COCOHA Matlab Toolbox v0.5.0, found here: http://doi.org/10.5281/zenodo.1198430
 % EEGLAB Toolbox v2025.1.0, found here: https://eeglab.org/
 
-% Load data from saved one channel instance data for fast processes
-load("output/data.mat");
+% Load data from DTU dataset, most of the parts cropped for the fast processes
+load("output/data.mat"); % data.mat = ./eeg/S1/data.eeg{1}(1:500000, :);
 data.cfg = [];
 analysisComponent = false; % true: to analysis components, false: use ICA weights
 manualCalibration = true; % true: manual, false: ICA ouput
@@ -11,7 +11,7 @@ manualCalibration = true; % true: manual, false: ICA ouput
 %% Figure related initializations
 [fig, startIdx, maxIndex, windowSize] = initSlidingWindowFigure(data.eeg{1});
 
-%% Noisy Raw Data
+%% Noisy Raw Data - processed only on first channel
 raw_data = data.eeg{1}(:, 1);
 
 %% Line noise filtering 50 Hz
