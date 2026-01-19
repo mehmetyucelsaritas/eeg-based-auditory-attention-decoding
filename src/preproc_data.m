@@ -41,12 +41,12 @@ averagedData = data.eeg{1}(:, 1);
 %% Ica base artifact removal
 EEG = convertToEEGLAB(data, 100000);
 if analysisComponent
-    EEG_ICA = pop_runica(EEG, 'icatype', 'runica', 'extended', 1);
-    EEG_ICA = pop_chanedit(EEG_ICA, 'lookup', 'standard-10-5-cap385.elp');
+    EEG_ICA = pop_chanedit(EEG, 'lookup', 'standard-10-5-cap385.elp');
+    EEG_ICA = pop_runica(EEG_ICA, 'icatype', 'runica', 'extended', 1);
     pop_topoplot(EEG_ICA, 0, 1:EEG_ICA.nbchan, 'ICA Component Scalp Maps', 0, 'electrodes', 'on');
 else
-    load('output/ICAweights.mat', 'EEG');
-    EEG_ICA = pop_subcomp(EEG, [1 4 5 8 17 34 35 36 45 46 52 57], 0); 
+    load('output/ICAweights.mat', 'EEG_ICA');
+    EEG_ICA = pop_subcomp(EEG_ICA, [6 15], 0); 
 end
 
 %% Asr based artifact removal
